@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tee Ballz — Tiny Golf Range Game</title>
+<style>
+  :root{
+    --bg:#0b1022; --fg:#eaf2ff; --muted:#9fb2d6; --accent:#67e8f9; --accent2:#a3e635;
+    --danger:#fb7185; --good:#86efac;
+  }
+  html,body{height:100%}
+  body{margin:0;background:radial-gradient(1200px 800px at 20% 10%,#131a3b,var(--bg));color:var(--fg);
+       font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+  .wrap{max-width:980px;margin:0 auto;padding:16px}
+  header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  h1{font-size:clamp(20px,3vw,28px);margin:0}
+  .sub{color:var(--muted);font-size:14px}
+  .hud{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+  .pill{padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.15);background:#0e1738;font-size:12px}
+  .good{border-color:rgba(134,239,172,.5);color:#caffd6}
+  .bad{border-color:rgba(251,113,133,.5);color:#ffd5db}
+  .controls{font-size:12px;color:var(--muted)}
+  canvas{width:100%;height:auto;background:linear-gradient(#1d274e 60%, #2a8a2a 60%);border-radius:14px;border:1px solid rgba(255,255,255,.12);box-shadow:0 18px 40px rgba(0,0,0,.4)}
+  footer{margin-top:10px;font-size:12px;color:var(--muted)}
+  .btn{appearance:none;border:none;border-radius:10px;padding:8px 12px;cursor:pointer;
+       background:linear-gradient(180deg,var(--accent),#31c0d4);color:#041018;font-weight:700}
+  .btn.ghost{background:transparent;color:var(--accent);border:1px solid rgba(103,232,249,.5)}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>🏌️‍♂️ Tee Ballz</h1>
+        <div class="sub">Hit the ball. Tag the range picker. Rack up points. Don’t spill the beer.</div>
+      </div>
+      <div class="controls">
+        <div><strong>Controls:</strong> ⬅️➡️ Aim • ⬆️⬇️ Power • Space/Click Swing • R Reset</div>
+      </div>
+    </header>
+
+    <div class="hud">
+      <div class="pill">Score: <span id="score">0</span></div>
+      <div class="pill">Streak: <span id="streak">0</span></div>
+      <div class="pill">Angle: <span id="angle">45°</span></div>
+      <div class="pill">Power: <span id="power">60%</span></div>
+      <button class="btn" id="btnSwing">Swing</button>
+      <button class="btn ghost" id="btnReset">Reset Ball</button>
+    </div>
+
+    <canvas id="game" width="960" height="540" aria-label="Tee Ballz game canvas"></canvas>
+
+    <footer>
+      Tip: Time your shot as the picker crests or dips — you’ll get a bonus for air hits. Built for quick demos; no install, single file.
+    </footer>
+  </div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const groundY = Math.floor(H*0.60);
+  const gravity = 0.35;
+  const airDrag = 0.0025;
+  const windMax = 0.08;
+  let wind = 0;
+
+  // HUD
+  const $ = (id)=>document.getElementById(id);
+  const scoreEl = $('score'), streakEl=$('streak'), angleEl=$('angle'), powerEl=$('power');
+
+  // Golfer (stick figure with beer & club)
+  const golfer = {
+    x: 80, y: groundY,
+    angle: 45 * Math.PI/180,
+    power: 0.6, // 0..1
+    swingCooldown: 0,
+  };
+
+  // Ball
+  const ball = {
+    x: golfer.x + 25, y: groundY-18,
+    vx: 0, vy: 0,
+    r: 5,
+    moving:false,
+    landed:false
+  };
+
+  // Range picker target
+  const picker = {
+    x: W*0.65, y: groundY-40,
+    w: 110, h: 40,
+    t: 0, // timer for motion
+  };
+
+  // Game state
+  let last = 0, acc = 0;
+  let score = 0, streak = 0;
+  let keys = {};
+
+  function resetBall(){
+    ball.x = golfer.x + 25;
+    ball.y = groundY-18;
+    ball.vx = ball.vy = 0;
+    ball.moving = false;
+    ball.landed = false;
+  }
+  function randomWind(){ wind = (Math.random()*2-1)*windMax; }
+
+  // Draw functions
+  function drawBackground(){
+    // Sky already via CSS gradient. Draw some distant hills.
+    ctx.save();
+    ctx.fillStyle = '#172049';
+    ctx.beginPath();
+    ctx.moveTo(0, groundY-90);
+    for(let x=0;x<=W;x+=60){
+      const y = groundY-90 + Math.sin((x+last*0.0002)/90)*12;
+      ctx.lineTo(x,y);
+    }
+    ctx.lineTo(W,0); ctx.lineTo(0,0); ctx.closePath();
+    ctx.fill();
+    // Ground stripe already via gradient split; add stripes
+    ctx.strokeStyle = 'rgba(255,255,255,.06)';
+    for(let x=0;x<W;x+=40){
+      ctx.beginPath();
+      ctx.moveTo(x,groundY+2);
+      ctx.lineTo(x+30, H);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawGolfer(){
+    ctx.save();
+    const x = golfer.x, y = groundY;
+    // legs
+    ctx.strokeStyle = '#dbe8ff'; ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(x, y-20); ctx.lineTo(x-8, y); // left
+    ctx.moveTo(x, y-20); ctx.lineTo(x+8, y); // right
+    ctx.stroke();
+    // body
+    ctx.beginPath(); ctx.moveTo(x, y-20); ctx.lineTo(x, y-50); ctx.stroke();
+    // head
+    ctx.beginPath(); ctx.arc(x, y-62, 8, 0, Math.PI*2); ctx.stroke();
+    // left arm with beer (up)
+    ctx.beginPath(); ctx.moveTo(x, y-45); ctx.lineTo(x-18, y-55); ctx.stroke();
+    // beer mug
+    ctx.fillStyle = '#ffd166';
+    ctx.fillRect(x-22, y-62, 7, 12); // beer
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(x-22, y-65, 7, 4); // foam
+    ctx.strokeStyle = '#cbd5ff';
+    ctx.strokeRect(x-22, y-62, 7, 12);
+    // right arm with club (aiming)
+    const armLen = 22;
+    const ax = x + Math.cos(golfer.angle)*armLen;
+    const ay = y-45 + Math.sin(golfer.angle)*armLen;
+    ctx.beginPath(); ctx.moveTo(x, y-45); ctx.lineTo(ax, ay); ctx.stroke();
+    // club
+    const clubLen = 30;
+    const cx = ax + Math.cos(golfer.angle)*clubLen;
+    const cy = ay + Math.sin(golfer.angle)*clubLen;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(cx, cy); ctx.stroke();
+    ctx.beginPath(); ctx.lineWidth = 3;
+    ctx.moveTo(cx, cy); ctx.lineTo(cx+6, cy+6); ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawBall(){
+    ctx.save();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawPicker(){
+    ctx.save();
+    // motion pattern: back & forth + bobbing
+    picker.t += 0.016;
+    const ampX = W*0.32, centerX = W*0.65;
+    const speed = 0.7;
+    picker.x = centerX + Math.sin(picker.t*speed)*ampX;
+    picker.y = groundY - 40 - Math.abs(Math.sin(picker.t*1.6))*40;
+
+    // body
+    ctx.fillStyle = '#9bd6ff';
+    ctx.strokeStyle = '#083a5b';
+    ctx.lineWidth = 2;
+    ctx.fillRect(picker.x - picker.w/2, picker.y - picker.h/2, picker.w, picker.h);
+    ctx.strokeRect(picker.x - picker.w/2, picker.y - picker.h/2, picker.w, picker.h);
+    // cage bars
+    ctx.strokeStyle = 'rgba(0,0,0,.35)';
+    for(let i=-4;i<=4;i++){
+      const bx = picker.x + i*(picker.w/10);
+      ctx.beginPath(); ctx.moveTo(bx, picker.y - picker.h/2); ctx.lineTo(bx, picker.y + picker.h/2); ctx.stroke();
+    }
+    // wheels
+    ctx.fillStyle = '#1f2937';
+    for(let i=-1;i<=1;i+=2){
+      ctx.beginPath(); ctx.arc(picker.x + i*(picker.w/2-12), picker.y + picker.h/2+10, 8, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function update(dt){
+    // wind shifts slowly
+    if(Math.random()<0.01) randomWind();
+
+    // Aim & power via keys
+    if(!ball.moving){
+      if(keys['ArrowLeft']) golfer.angle -= 0.02;
+      if(keys['ArrowRight']) golfer.angle += 0.02;
+      if(keys['ArrowUp']) golfer.power = Math.min(1, golfer.power + 0.01);
+      if(keys['ArrowDown']) golfer.power = Math.max(0.2, golfer.power - 0.01);
+      angleEl.textContent = Math.round((golfer.angle*180/Math.PI+360)%360) + '°';
+      powerEl.textContent = Math.round(golfer.power*100) + '%';
+    }
+
+    // Ball physics
+    if(ball.moving){
+      // air drag simple
+      const v = Math.hypot(ball.vx, ball.vy);
+      const drag = 1 - airDrag * v;
+      ball.vx *= drag;
+      ball.vx += wind*0.1; // small wind push
+      ball.vy += gravity;
+
+      ball.x += ball.vx;
+      ball.y += ball.vy;
+
+      // ground collision
+      if(ball.y + ball.r >= groundY){
+        ball.y = groundY - ball.r;
+        if(Math.abs(ball.vy) > 2){
+          ball.vy *= -0.45; // bounce
+          ball.vx *= 0.85;
+        } else {
+          ball.vy = 0; ball.vx *= 0.9;
+          if(Math.abs(ball.vx) < 0.1){
+            ball.moving = false; ball.landed = true;
+          }
+        }
+      }
+
+      // walls
+      if(ball.x - ball.r < 0){ ball.x = ball.r; ball.vx *= -0.6; }
+      if(ball.x + ball.r > W){ ball.x = W - ball.r; ball.vx *= -0.6; }
+
+      // Hit detection with picker (AABB vs circle)
+      if(circleRectOverlap(ball.x, ball.y, ball.r, picker.x-picker.w/2, picker.y-picker.h/2, picker.w, picker.h)){
+        let airBonus = (ball.y < picker.y - picker.h/2) ? 25 : 0;
+        let speedBonus = Math.min(20, Math.round(Math.hypot(ball.vx, ball.vy)));
+        const pts = 50 + airBonus + speedBonus;
+        score += pts; streak += 1;
+        popText(`+${pts}`, picker.x, picker.y-30, '#b7f7c2');
+        // knock the ball away a bit
+        ball.vx *= -0.8; ball.vy = -Math.abs(ball.vy)*0.6;
+        // confetti-ish effect
+        spark(picker.x, picker.y);
+        // brief invincibility to prevent multi-hit farming
+        ball.x -= 12; ball.y -= 10;
+      }
+    }
+  }
+
+  // Small particle effects
+  const pops = [];
+  function popText(txt, x, y, color){
+    pops.push({txt,x,y,life:1,color});
+  }
+  function drawPops(dt){
+    for(let i=pops.length-1;i>=0;i--){
+      const p = pops[i];
+      p.life -= dt*0.0015;
+      p.y -= 0.05*dt;
+      if(p.life<=0) pops.splice(i,1);
+      ctx.globalAlpha = Math.max(0,p.life);
+      ctx.fillStyle = p.color; ctx.font = 'bold 20px system-ui, -apple-system, Segoe UI';
+      ctx.fillText(p.txt, p.x, p.y);
+      ctx.globalAlpha = 1;
+    }
+  }
+  const sparks = [];
+  function spark(x,y){
+    for(let i=0;i<18;i++){
+      const a = Math.random()*Math.PI*2;
+      const s = Math.random()*3+1;
+      sparks.push({x,y,vx:Math.cos(a)*s, vy:Math.sin(a)*s, life:1});
+    }
+  }
+  function drawSparks(dt){
+    for(let i=sparks.length-1;i>=0;i--){
+      const s = sparks[i];
+      s.life -= dt*0.01; s.x += s.vx; s.y += s.vy + 0.03*dt;
+      if(s.life<=0) sparks.splice(i,1);
+      ctx.globalAlpha = Math.max(0,s.life);
+      ctx.fillStyle = '#a0ffe0';
+      ctx.fillRect(s.x, s.y, 2, 2);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function circleRectOverlap(cx, cy, cr, rx, ry, rw, rh){
+    const nx = Math.max(rx, Math.min(cx, rx+rw));
+    const ny = Math.max(ry, Math.min(cy, ry+rh));
+    const dx = cx-nx, dy = cy-ny;
+    return (dx*dx + dy*dy) <= cr*cr;
+  }
+
+  function swing(){
+    if(ball.moving) return;
+    // launch based on angle & power
+    const p = golfer.power*16 + 6;
+    ball.vx = Math.cos(golfer.angle)*p;
+    ball.vy = Math.sin(golfer.angle)*p * -1; // up is negative
+    ball.moving = true; ball.landed = false;
+    // small swing cooldown visual
+    popText('WHACK!', golfer.x+35, groundY-70, '#e0e7ff');
+  }
+
+  function render(t){
+    const dt = t - last; last = t;
+    update(dt);
+
+    ctx.clearRect(0,0,W,H);
+    drawBackground();
+    drawPicker();
+    drawGolfer();
+    drawBall();
+    drawSparks(dt);
+    drawPops(dt);
+
+    scoreEl.textContent = score;
+    streakEl.textContent = streak;
+
+    requestAnimationFrame(render);
+  }
+
+  // Input
+  window.addEventListener('keydown', (e)=>{
+    keys[e.key] = true;
+    if(e.key === ' '){ e.preventDefault(); swing(); }
+    if(e.key.toLowerCase()==='r'){ resetBall(); }
+  });
+  window.addEventListener('keyup', (e)=>{ keys[e.key] = false; });
+  canvas.addEventListener('click', swing);
+  $('btnSwing').addEventListener('click', swing);
+  $('btnReset').addEventListener('click', resetBall);
+
+  // Start
+  randomWind();
+  angleEl.textContent = Math.round(golfer.angle*180/Math.PI) + '°';
+  powerEl.textContent = Math.round(golfer.power*100) + '%';
+  requestAnimationFrame((t)=>{ last=t; render(t); });
+})();
+</script>
+</body>
+</html>
