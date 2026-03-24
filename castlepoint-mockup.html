@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Castlepoint – UI Mockup</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    /* ── Status Bar ── */
+    .status-bar {
+      background: #000;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 16px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .status-bar .time { font-size: 14px; font-weight: 700; }
+    .status-icons { display: flex; gap: 6px; align-items: center; font-size: 12px; }
+
+    /* ── Browser Chrome ── */
+    .browser-chrome {
+      background: #1c1c1e;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px;
+    }
+    .browser-back { color: #fff; font-size: 22px; cursor: pointer; background: none; border: none; }
+    .browser-actions { display: flex; gap: 18px; color: #aaa; font-size: 18px; cursor: pointer; }
+
+    /* ── Top Nav ── */
+    .top-nav {
+      background: #1a1a2e;
+      display: flex;
+      align-items: center;
+      padding: 10px 16px;
+      gap: 12px;
+    }
+    .logo-box {
+      background: #f5a623;
+      border-radius: 8px;
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .logo-text {
+      color: #fff;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      margin-right: 8px;
+    }
+    .search-bar {
+      flex: 1;
+      background: #2d2d4e;
+      border: none;
+      border-radius: 20px;
+      padding: 8px 14px;
+      color: #ccc;
+      font-size: 14px;
+      outline: none;
+    }
+    .search-bar::placeholder { color: #888; }
+    .nav-links {
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      margin-left: 10px;
+    }
+    .nav-link {
+      color: #aaa;
+      font-size: 13px;
+      cursor: pointer;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .nav-link.active {
+      color: #f5a623;
+      border-bottom: 2px solid #f5a623;
+      padding-bottom: 2px;
+      font-weight: 600;
+    }
+    .nav-link .icon { font-size: 14px; }
+
+    /* ── Client Header Card ── */
+    .client-header {
+      background: #fff;
+      margin: 14px;
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+    .client-info { display: flex; align-items: flex-start; gap: 12px; flex: 1; min-width: 280px; }
+    .client-icon {
+      background: #fff3e0;
+      border-radius: 50%;
+      width: 42px; height: 42px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+      border: 2px solid #f5a623;
+    }
+    .client-name { font-size: 20px; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
+    .client-meta { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 4px; }
+    .client-meta-item { font-size: 12px; color: #666; display: flex; align-items: center; gap: 4px; }
+    .client-meta-item .label { color: #999; }
+
+    .person-cards { display: flex; gap: 10px; flex-wrap: wrap; }
+    .person-card {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 10px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 190px;
+    }
+    .avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: #fff;
+      flex-shrink: 0;
+    }
+    .avatar.homer { background: #e67e22; }
+    .avatar.marge { background: #3498db; }
+    .person-details .name { font-size: 13px; font-weight: 600; color: #1a1a2e; }
+    .person-details .age { font-size: 11px; color: #999; }
+    .person-details .phone { font-size: 12px; color: #555; margin-top: 2px; }
+
+    /* ── Tabs ── */
+    .tabs-container {
+      background: #fff;
+      margin: 0 14px;
+      border-radius: 12px 12px 0 0;
+      border-bottom: 1px solid #e9ecef;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .tabs {
+      display: flex;
+      padding: 0 16px;
+      gap: 0;
+      overflow-x: auto;
+    }
+    .tab {
+      padding: 14px 18px;
+      font-size: 13px;
+      color: #888;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.2s;
+    }
+    .tab:hover { color: #555; }
+    .tab.active {
+      color: #f5a623;
+      border-bottom-color: #f5a623;
+      font-weight: 600;
+    }
+    .tab .tab-icon { font-size: 14px; }
+
+    /* ── Content Area ── */
+    .content-area {
+      background: #fff;
+      margin: 0 14px 14px;
+      border-radius: 0 0 12px 12px;
+      padding: 18px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+
+    /* ── Profile Section ── */
+    .profile-section {
+      border: 1px solid #e9ecef;
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      color: #999;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .edit-btn {
+      font-size: 12px;
+      color: #f5a623;
+      cursor: pointer;
+      font-weight: 600;
+      background: none;
+      border: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    .profile-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    .profile-field .field-label {
+      font-size: 11px;
+      color: #999;
+      margin-bottom: 3px;
+    }
+    .profile-field .field-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a1a2e;
+    }
+
+    /* ── Tasks Section ── */
+    .tasks-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 6px;
+    }
+    .tasks-title { font-size: 18px; font-weight: 700; color: #1a1a2e; }
+    .tasks-subtitle { font-size: 12px; color: #999; margin-bottom: 16px; }
+    .add-btn {
+      background: #8B6914;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .add-btn:hover { background: #7a5c10; }
+
+    /* ── Accordion Items ── */
+    .accordion-list { display: flex; flex-direction: column; gap: 2px; }
+    .accordion-item {
+      border: 1px solid #e9ecef;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .accordion-row {
+      display: flex;
+      align-items: center;
+      padding: 12px 14px;
+      gap: 10px;
+      cursor: pointer;
+      background: #fff;
+      transition: background 0.15s;
+    }
+    .accordion-row:hover { background: #fafafa; }
+    .accordion-row.expanded { background: #fffdf8; }
+    .chevron {
+      font-size: 12px;
+      color: #aaa;
+      transition: transform 0.2s;
+      flex-shrink: 0;
+      width: 16px;
+    }
+    .chevron.open { transform: rotate(90deg); color: #f5a623; }
+    .task-icon { flex-shrink: 0; font-size: 16px; }
+    .task-icon.warning { color: #e74c3c; }
+    .task-icon.info { color: #3498db; }
+    .task-name {
+      flex: 1;
+      font-size: 14px;
+      font-weight: 500;
+      color: #1a1a2e;
+    }
+    .task-name.warning-text { color: #e74c3c; font-weight: 600; }
+    .badge {
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .badge.action { background: #fde8e8; color: #c0392b; border: 1px solid #f5c6cb; }
+    .badge.info-badge { background: #e8f4fd; color: #2980b9; border: 1px solid #bee5f5; }
+    .task-date { font-size: 12px; color: #999; flex-shrink: 0; min-width: 85px; text-align: right; }
+    .task-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .task-action-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #ccc;
+      font-size: 14px;
+      padding: 2px;
+    }
+    .task-action-btn:hover { color: #888; }
+
+    /* Expanded body */
+    .accordion-body {
+      padding: 12px 50px 14px;
+      background: #fffdf8;
+      border-top: 1px solid #f0ebe0;
+      display: none;
+    }
+    .accordion-body.open { display: block; }
+    .accordion-body p {
+      font-size: 13px;
+      color: #555;
+      line-height: 1.6;
+    }
+
+    /* ── Bottom Bar ── */
+    .bottom-bar {
+      background: #fff;
+      border-top: 1px solid #e9ecef;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      bottom: 0;
+    }
+    .bottom-placeholder { font-size: 14px; color: #bbb; }
+    .bottom-actions { display: flex; gap: 12px; align-items: center; }
+    .bottom-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 20px;
+      color: #888;
+    }
+    .record-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 22px;
+      color: #888;
+    }
+    .compose-btn {
+      background: #e8f0fe;
+      border: none;
+      border-radius: 50%;
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      font-size: 16px;
+      position: relative;
+    }
+    .compose-badge {
+      position: absolute;
+      top: -2px; right: -2px;
+      background: #e74c3c;
+      border-radius: 50%;
+      width: 14px; height: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px;
+      color: #fff;
+      font-weight: 700;
+    }
+
+    /* Responsive tweaks */
+    @media (max-width: 600px) {
+      .profile-grid { grid-template-columns: repeat(2, 1fr); }
+      .nav-links { display: none; }
+      .person-cards { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Status Bar -->
+<div class="status-bar">
+  <span class="time">6:49 PM Tue Mar 24</span>
+  <div class="status-icons">
+    <span>📶</span>
+    <span>86%</span>
+    <span>🔋</span>
+  </div>
+</div>
+
+<!-- Browser Chrome -->
+<div class="browser-chrome">
+  <button class="browser-back">‹</button>
+  <div class="browser-actions">
+    <span>↩</span>
+    <span>↪</span>
+    <span>⤢</span>
+    <span>⋮</span>
+  </div>
+</div>
+
+<!-- Top Nav -->
+<div class="top-nav">
+  <div class="logo-box">🏰</div>
+  <span class="logo-text">Castlepoint</span>
+  <input class="search-bar" type="text" placeholder="Springfield" value="Springfield" />
+  <div class="nav-links">
+    <div class="nav-link">
+      <span class="icon">✦</span> Bugs B.
+    </div>
+    <div class="nav-link active">
+      <span class="icon">📋</span> CFP Plan
+    </div>
+    <div class="nav-link">
+      <span class="icon">📄</span> Accountant Deliverables
+    </div>
+  </div>
+</div>
+
+<!-- Client Header Card -->
+<div class="client-header">
+  <div class="client-info">
+    <div class="client-icon">👤</div>
+    <div>
+      <div class="client-name">Simpson, Homer and Marge</div>
+      <div class="client-meta">
+        <div class="client-meta-item">📍 Springfield, IL</div>
+        <div class="client-meta-item"><span class="label">Assigned:</span> Bugs Bunny</div>
+        <div class="client-meta-item"><span class="label">Advisor:</span> Bugs Bunny</div>
+      </div>
+      <div class="client-meta" style="margin-top:2px;">
+        <div class="client-meta-item"><span class="label">CSA:</span> Daffy Duck</div>
+        <div class="client-meta-item"><span class="label">Last Event:</span> HS &amp; MS &amp; BB &amp; DD Annual… (Aug 25, 2025)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="person-cards">
+    <div class="person-card">
+      <div class="avatar homer">HS</div>
+      <div class="person-details">
+        <div class="name">Homer Simpson <span style="font-size:11px;color:#999;font-weight:400;">69</span></div>
+        <div class="phone">📞 (555) 742-3301</div>
+      </div>
+    </div>
+    <div class="person-card">
+      <div class="avatar marge">MS</div>
+      <div class="person-details">
+        <div class="name">Marge Simpson <span style="font-size:11px;color:#999;font-weight:400;">68</span></div>
+        <div class="phone">📞 (555) 894-6120</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs-container">
+  <div class="tabs">
+    <div class="tab" onclick="switchTab('taxes', this)">
+      <span class="tab-icon">🗒</span> Taxes (Table View)
+    </div>
+    <div class="tab active" onclick="switchTab('estate', this)">
+      <span class="tab-icon">📋</span> Estate (Accordion View)
+    </div>
+    <div class="tab" onclick="switchTab('retirement', this)">
+      <span class="tab-icon">📈</span> Retirement (Split View)
+    </div>
+  </div>
+</div>
+
+<!-- Content Area -->
+<div class="content-area">
+
+  <!-- Estate Tab (default visible) -->
+  <div id="tab-estate">
+    <!-- Permanent Info Profile -->
+    <div class="profile-section">
+      <div class="section-label">
+        Permanent Information Profile
+        <button class="edit-btn">✏️ Edit Profile</button>
+      </div>
+      <div class="profile-grid">
+        <div class="profile-field">
+          <div class="field-label">Will Last Updated</div>
+          <div class="field-value">Mar 03, 2019</div>
+        </div>
+        <div class="profile-field">
+          <div class="field-label">Trust Type</div>
+          <div class="field-value">Revocable Living Trust</div>
+        </div>
+        <div class="profile-field">
+          <div class="field-label">Executor</div>
+          <div class="field-value">Bart Simpson</div>
+        </div>
+        <div class="profile-field">
+          <div class="field-label">Healthcare POA</div>
+          <div class="field-value">Marge Simpson</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tasks Section -->
+    <div class="tasks-header">
+      <div>
+        <div class="tasks-title">Estate &amp; Legacy Tasks</div>
+      </div>
+      <button class="add-btn">+ Add Item</button>
+    </div>
+    <div class="tasks-subtitle">Compact Accordion Layout: Clean list view that only expands when you need detail.</div>
+
+    <div class="accordion-list">
+
+      <!-- Item 1 – expanded -->
+      <div class="accordion-item">
+        <div class="accordion-row expanded" onclick="toggleAccordion('item1', this)">
+          <span class="chevron open" id="chev-item1">›</span>
+          <span class="task-icon warning">⚠️</span>
+          <span class="task-name warning-text">Update Beneficiaries on New Fidelity IRA</span>
+          <span class="badge action">Action Required</span>
+          <span class="task-date">Mar 20, 2026</span>
+          <div class="task-actions">
+            <button class="task-action-btn">✏️</button>
+            <button class="task-action-btn">🗑</button>
+          </div>
+        </div>
+        <div class="accordion-body open" id="item1">
+          <p>The newly consolidated rollover IRA needs the primary and contingent beneficiaries officially listed. Need to send DocuSign to Homer and Marge.</p>
+        </div>
+      </div>
+
+      <!-- Item 2 -->
+      <div class="accordion-item">
+        <div class="accordion-row" onclick="toggleAccordion('item2', this)">
+          <span class="chevron" id="chev-item2">›</span>
+          <span class="task-icon info">ℹ️</span>
+          <span class="task-name">Trust documents reviewed with attorney</span>
+          <span class="badge info-badge">Informational</span>
+          <span class="task-date">Nov 05, 2025</span>
+        </div>
+        <div class="accordion-body" id="item2">
+          <p>Annual review completed with Attorney Lionel Hutz at Springfield Law. All documents are current. Next review scheduled for Nov 2026.</p>
+        </div>
+      </div>
+
+      <!-- Item 3 -->
+      <div class="accordion-item">
+        <div class="accordion-row" onclick="toggleAccordion('item3', this)">
+          <span class="chevron" id="chev-item3">›</span>
+          <span class="task-icon warning">⚠️</span>
+          <span class="task-name">Upload Healthcare Directives to Vault</span>
+          <span class="badge action">Action Required</span>
+          <span class="task-date">Apr 02, 2026</span>
+        </div>
+        <div class="accordion-body" id="item3">
+          <p>Homer and Marge's updated healthcare directives need to be uploaded to the secure document vault. Docs received from attorney on Mar 10, 2026.</p>
+        </div>
+      </div>
+
+      <!-- Item 4 -->
+      <div class="accordion-item">
+        <div class="accordion-row" onclick="toggleAccordion('item4', this)">
+          <span class="chevron" id="chev-item4">›</span>
+          <span class="task-icon info">ℹ️</span>
+          <span class="task-name">Annual Gifting Strategy 2026</span>
+          <span class="badge info-badge">Informational</span>
+          <span class="task-date">Jan 15, 2026</span>
+        </div>
+        <div class="accordion-body" id="item4">
+          <p>Annual exclusion gifting plan: Homer and Marge each gift $18,000 to Bart, Lisa, and Maggie. Total annual gifting = $108,000. Confirm wire details with Bart before end of Q1.</p>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /tab-estate -->
+
+  <!-- Taxes Tab (hidden) -->
+  <div id="tab-taxes" style="display:none;">
+    <div class="section-label" style="margin-bottom:16px;">Tax Summary – Table View</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead>
+        <tr style="background:#f8f9fa;text-align:left;">
+          <th style="padding:10px;border-bottom:1px solid #e9ecef;">Year</th>
+          <th style="padding:10px;border-bottom:1px solid #e9ecef;">Filing Status</th>
+          <th style="padding:10px;border-bottom:1px solid #e9ecef;">AGI</th>
+          <th style="padding:10px;border-bottom:1px solid #e9ecef;">Fed. Tax</th>
+          <th style="padding:10px;border-bottom:1px solid #e9ecef;">Effective Rate</th>
+          <th style="padding:10px;border-bottom:1px solid #e9ecef;">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding:10px;border-bottom:1px solid #f0f0f0;">2025</td>
+          <td style="padding:10px;border-bottom:1px solid #f0f0f0;">Married Filing Jointly</td>
+          <td style="padding:10px;border-bottom:1px solid #f0f0f0;">$284,500</td>
+          <td style="padding:10px;border-bottom:1px solid #f0f0f0;">$51,200</td>
+          <td style="padding:10px;border-bottom:1px solid #f0f0f0;">18.0%</td>
+          <td style="padding:10px;border-bottom:1px solid #f0f0f0;"><span class="badge info-badge">Filed</span></td>
+        </tr>
+        <tr>
+          <td style="padding:10px;border-bottom:1px solid #f0f0f0;">2024</td>
+          <td style="padding:10px;border-bottom:1px solid #f0f0f0;">Married Filing Jointly</td>
+          <td style="padding:10px;border-bottom:1px solid #f0f0f0;">$271,800</td>
+          <td style="padding:10px;border-bottom:1px solid #f0f0f0;">$48,900</td>
+          <td style="padding:10px;border-bottom:1px solid #f0f0f0;">18.0%</td>
+          <td style="padding:10px;border-bottom:1px solid #f0f0f0;"><span class="badge info-badge">Filed</span></td>
+        </tr>
+        <tr>
+          <td style="padding:10px;">2023</td>
+          <td style="padding:10px;">Married Filing Jointly</td>
+          <td style="padding:10px;">$258,300</td>
+          <td style="padding:10px;">$45,100</td>
+          <td style="padding:10px;">17.5%</td>
+          <td style="padding:10px;"><span class="badge info-badge">Filed</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div><!-- /tab-taxes -->
+
+  <!-- Retirement Tab (hidden) -->
+  <div id="tab-retirement" style="display:none;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+      <div>
+        <div class="section-label" style="margin-bottom:12px;">Retirement Accounts</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="border:1px solid #e9ecef;border-radius:8px;padding:12px;">
+            <div style="font-size:12px;color:#999;">Homer – Rollover IRA (Fidelity)</div>
+            <div style="font-size:18px;font-weight:700;margin-top:4px;">$842,500</div>
+            <div style="font-size:11px;color:#27ae60;margin-top:2px;">▲ 7.2% YTD</div>
+          </div>
+          <div style="border:1px solid #e9ecef;border-radius:8px;padding:12px;">
+            <div style="font-size:12px;color:#999;">Marge – Roth IRA (Vanguard)</div>
+            <div style="font-size:18px;font-weight:700;margin-top:4px;">$213,400</div>
+            <div style="font-size:11px;color:#27ae60;margin-top:2px;">▲ 6.9% YTD</div>
+          </div>
+          <div style="border:1px solid #e9ecef;border-radius:8px;padding:12px;">
+            <div style="font-size:12px;color:#999;">Homer – 401(k) Nuclear Plant</div>
+            <div style="font-size:18px;font-weight:700;margin-top:4px;">$391,200</div>
+            <div style="font-size:11px;color:#e74c3c;margin-top:2px;">▼ 1.1% YTD</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="section-label" style="margin-bottom:12px;">Retirement Projections</div>
+        <div style="border:1px solid #e9ecef;border-radius:8px;padding:14px;height:calc(100% - 30px);">
+          <div style="font-size:12px;color:#999;margin-bottom:8px;">Projected Monthly Income at 72</div>
+          <div style="font-size:24px;font-weight:700;color:#f5a623;">$9,840</div>
+          <div style="font-size:12px;color:#999;margin-top:4px;">Including Social Security est. $4,200/mo</div>
+          <div style="margin-top:16px;font-size:12px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+              <span style="color:#555;">Portfolio Withdrawal Rate</span>
+              <span style="font-weight:600;">3.8%</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+              <span style="color:#555;">Years to RMD Start</span>
+              <span style="font-weight:600;">3</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:#555;">Probability of Success</span>
+              <span style="font-weight:600;color:#27ae60;">91%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /tab-retirement -->
+
+</div><!-- /content-area -->
+
+<!-- Bottom Bar -->
+<div class="bottom-bar">
+  <span class="bottom-placeholder">Let's write or build together</span>
+  <div class="bottom-actions">
+    <button class="bottom-btn">＋</button>
+    <div class="compose-btn" style="position:relative;">
+      📋
+      <div class="compose-badge">✕</div>
+    </div>
+    <button class="record-btn">🎙</button>
+  </div>
+</div>
+
+<script>
+  function toggleAccordion(id, row) {
+    const body = document.getElementById(id);
+    const chev = document.getElementById('chev-' + id);
+    const isOpen = body.classList.contains('open');
+    if (isOpen) {
+      body.classList.remove('open');
+      chev.classList.remove('open');
+      row.classList.remove('expanded');
+    } else {
+      body.classList.add('open');
+      chev.classList.add('open');
+      row.classList.add('expanded');
+    }
+  }
+
+  function switchTab(name, el) {
+    // Hide all tab content
+    document.querySelectorAll('[id^="tab-"]').forEach(t => t.style.display = 'none');
+    // Remove active from all tabs
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    // Show selected
+    document.getElementById('tab-' + name).style.display = 'block';
+    el.classList.add('active');
+  }
+</script>
+</body>
+</html>
