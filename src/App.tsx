@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const sectionTitle = "mb-2 text-xs font-medium uppercase tracking-wide text-slate-500";
 const inputClass =
@@ -579,6 +579,349 @@ const fakeWagesBlob: WagesBlob = {
   },
 };
 
+
+type MemorySubTab = "chat" | "database" | "markdown" | "settings";
+type MemoryTable = "identity" | "preferences" | "projects" | "people" | "rules";
+type MemoryImportance = "Core" | "Useful" | "Archive";
+
+interface MemoryNote {
+  id: string;
+  table: MemoryTable;
+  title: string;
+  body: string;
+  tags: string[];
+  importance: MemoryImportance;
+  updatedAt: string;
+}
+
+interface MemoryRelation {
+  from: string;
+  to: string;
+  type: string;
+}
+
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+interface MemoryWorkspace {
+  notes: MemoryNote[];
+  relations: MemoryRelation[];
+  messages: ChatMessage[];
+}
+
+const tableLabels: Record<MemoryTable, string> = {
+  identity: "Identity",
+  preferences: "Preferences",
+  projects: "Projects",
+  people: "People",
+  rules: "AI Rules",
+};
+
+const memorySeed: MemoryWorkspace = {
+  notes: [
+    {
+      id: "identity-owner",
+      table: "identity",
+      title: "Owner profile",
+      body: "I want a portable, personalized AI memory product that I can understand without needing to code.",
+      tags: ["owner", "portable", "plain-english"],
+      importance: "Core",
+      updatedAt: "2026-05-14",
+    },
+    {
+      id: "preference-teaching-style",
+      table: "preferences",
+      title: "Teaching style",
+      body: "Explain technical topics like I am brand new. Use direct language, examples, and avoid unexplained jargon.",
+      tags: ["communication", "beginner-friendly"],
+      importance: "Core",
+      updatedAt: "2026-05-14",
+    },
+    {
+      id: "project-memory-product",
+      table: "projects",
+      title: "Portable memory product",
+      body: "Build an AI memory cockpit with chat, relational memory tables, markdown files, exportable context, and safety controls.",
+      tags: ["memory", "chatbot", "product"],
+      importance: "Core",
+      updatedAt: "2026-05-14",
+    },
+    {
+      id: "rule-storage",
+      table: "rules",
+      title: "Storage rule",
+      body: "Keep memory readable as markdown first, with IDs and relationships so it can be moved between tools later.",
+      tags: ["markdown", "database"],
+      importance: "Useful",
+      updatedAt: "2026-05-14",
+    },
+  ],
+  relations: [
+    { from: "identity-owner", to: "preference-teaching-style", type: "communicates_with" },
+    { from: "project-memory-product", to: "rule-storage", type: "uses" },
+  ],
+  messages: [
+    {
+      role: "assistant",
+      content:
+        "Welcome to your Memory Management cockpit. I am a simulated chatbot here: I do not call an AI API yet, but I can show exactly what memory would be packed into an AI prompt.",
+    },
+  ],
+};
+
+function todayStamp() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "") || "memory";
+}
+
+function parseTags(value: string) {
+  return value
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+}
+
+function memoryPath(note: MemoryNote) {
+  return `/memory/${note.table}/${note.id}.md`;
+}
+
+function noteToMarkdown(note: MemoryNote) {
+  return `---\nid: ${note.id}\ntable: ${note.table}\ntitle: ${note.title}\nimportance: ${note.importance}\ntags: [${note.tags.join(", ")}]\nupdated_at: ${note.updatedAt}\n---\n\n# ${note.title}\n\n${note.body}\n`;
+}
+
+function workspaceToMarkdown(workspace: MemoryWorkspace) {
+  const files = workspace.notes.map((note) => `## ${memoryPath(note)}\n\n\`\`\`md\n${noteToMarkdown(note)}\`\`\``).join("\n\n");
+  const relations = workspace.relations.map((rel) => `- ${rel.from} --${rel.type}--> ${rel.to}`).join("\n") || "- No relationships yet.";
+  return `# Portable AI Memory Export\n\nThis is the human-readable bundle you can copy into a folder, another app, or a future database.\n\n## Simulated relational links\n\n${relations}\n\n${files}`;
+}
+
+function buildMemoryContext(workspace: MemoryWorkspace) {
+  return workspace.notes
+    .filter((note) => note.importance !== "Archive")
+    .map((note) => `- [${tableLabels[note.table]}:${note.importance}] ${note.title}: ${note.body}`)
+    .join("\n");
+}
+
+function MemoryManagementTab() {
+  const [subTab, setSubTab] = useState<MemorySubTab>("chat");
+  const [workspace, setWorkspace] = useState<MemoryWorkspace>(memorySeed);
+  const [draftMessage, setDraftMessage] = useState("How should I organize my AI memory?");
+  const [newTitle, setNewTitle] = useState("New memory");
+  const [newTable, setNewTable] = useState<MemoryTable>("projects");
+  const [newBody, setNewBody] = useState("Write one useful fact the AI should remember here.");
+  const [newTags, setNewTags] = useState("inbox, review");
+  const [selectedId, setSelectedId] = useState(memorySeed.notes[0].id);
+  const selected = workspace.notes.find((note) => note.id === selectedId) ?? workspace.notes[0];
+  const markdownExport = useMemo(() => workspaceToMarkdown(workspace), [workspace]);
+  const contextPack = useMemo(() => buildMemoryContext(workspace), [workspace]);
+  const coreCount = workspace.notes.filter((note) => note.importance === "Core").length;
+
+  function addMemory() {
+    const idBase = `${newTable}-${slugify(newTitle)}`;
+    const id = workspace.notes.some((note) => note.id === idBase) ? `${idBase}-${workspace.notes.length + 1}` : idBase;
+    const note: MemoryNote = {
+      id,
+      table: newTable,
+      title: newTitle || "Untitled memory",
+      body: newBody || "Empty memory body.",
+      tags: parseTags(newTags),
+      importance: "Useful",
+      updatedAt: todayStamp(),
+    };
+    setWorkspace((current) => ({ ...current, notes: [note, ...current.notes] }));
+    setSelectedId(id);
+    setNewTitle("New memory");
+    setNewBody("Write one useful fact the AI should remember here.");
+  }
+
+  function updateSelected(field: keyof MemoryNote, value: string | string[]) {
+    setWorkspace((current) => ({
+      ...current,
+      notes: current.notes.map((note) => (note.id === selected.id ? { ...note, [field]: value, updatedAt: todayStamp() } : note)),
+    }));
+  }
+
+  function sendMessage() {
+    const clean = draftMessage.trim();
+    if (!clean) return;
+    const answer = `I found ${workspace.notes.length} memories (${coreCount} core). For this turn, I would load the strongest markdown memories first, then answer using this context:\n\n${contextPack}\n\nBeginner translation: your memories are just little note cards. The “database” part is the table, ID, tags, and links that help an AI find the right cards fast.`;
+    setWorkspace((current) => ({
+      ...current,
+      messages: [...current.messages, { role: "user", content: clean }, { role: "assistant", content: answer }],
+    }));
+    setDraftMessage("");
+  }
+
+  const tableCounts = (Object.keys(tableLabels) as MemoryTable[]).map((table) => ({
+    table,
+    count: workspace.notes.filter((note) => note.table === table).length,
+  }));
+
+  return (
+    <section>
+      <div className="mb-6 rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-950 to-slate-800 p-6 text-white shadow-sm">
+        <div className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-cyan-200">Portable AI Memory Product</div>
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight">Memory Management</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-200">
+              Think of this as your AI's backpack: markdown files for readability, database-style tables for structure, and a chat simulator that shows what gets remembered on each turn.
+            </p>
+          </div>
+          <div className="grid grid-cols-3 gap-3 text-center text-sm">
+            <div className="rounded-2xl bg-white/10 p-3"><div className="text-2xl font-semibold">{workspace.notes.length}</div><div className="text-slate-300">memories</div></div>
+            <div className="rounded-2xl bg-white/10 p-3"><div className="text-2xl font-semibold">{workspace.relations.length}</div><div className="text-slate-300">links</div></div>
+            <div className="rounded-2xl bg-white/10 p-3"><div className="text-2xl font-semibold">MD</div><div className="text-slate-300">portable</div></div>
+          </div>
+        </div>
+      </div>
+
+      <SubTabs
+        items={[
+          ["chat", "AI Chatbot"],
+          ["database", "Memory Database"],
+          ["markdown", "Markdown Vault"],
+          ["settings", "System Design"],
+        ]}
+        active={subTab}
+        setActive={(k) => setSubTab(k as MemorySubTab)}
+      />
+
+      {subTab === "chat" && (
+        <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-semibold">Ultimate-turn chatbot simulator</h2>
+              <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">No API key needed</span>
+            </div>
+            <div className="mb-4 max-h-[460px] space-y-3 overflow-auto rounded-2xl bg-slate-50 p-3">
+              {workspace.messages.map((message, index) => (
+                <div key={index} className={`rounded-2xl p-3 text-sm leading-6 ${message.role === "user" ? "ml-10 bg-slate-900 text-white" : "mr-10 border border-slate-200 bg-white text-slate-700"}`}>
+                  <div className="mb-1 text-xs font-semibold uppercase tracking-wide opacity-60">{message.role === "user" ? "You" : "Memory AI"}</div>
+                  <div className="whitespace-pre-wrap">{message.content}</div>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input value={draftMessage} onChange={(e) => setDraftMessage(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendMessage()} className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="Ask your memory-aware AI..." />
+              <button onClick={sendMessage} className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">Send</button>
+            </div>
+          </div>
+          <aside className="rounded-2xl border border-cyan-100 bg-cyan-50 p-4">
+            <div className={sectionTitle}>Context loaded this turn</div>
+            <pre className="max-h-[520px] whitespace-pre-wrap rounded-xl bg-white p-3 text-xs leading-5 text-slate-700">{contextPack}</pre>
+          </aside>
+        </div>
+      )}
+
+      {subTab === "database" && (
+        <div className="grid gap-5 lg:grid-cols-[260px_1fr]">
+          <div className="space-y-3">
+            {tableCounts.map(({ table, count }) => (
+              <div key={table} className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="text-sm font-semibold">{tableLabels[table]}</div>
+                <div className="mt-1 text-2xl font-semibold text-slate-900">{count}</div>
+                <div className="text-xs text-slate-500">rows in table</div>
+              </div>
+            ))}
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="mb-4 grid gap-3 md:grid-cols-[1fr_160px]">
+              <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" />
+              <select value={newTable} onChange={(e) => setNewTable(e.target.value as MemoryTable)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm">
+                {(Object.keys(tableLabels) as MemoryTable[]).map((table) => <option key={table} value={table}>{tableLabels[table]}</option>)}
+              </select>
+              <textarea value={newBody} onChange={(e) => setNewBody(e.target.value)} className="min-h-[88px] rounded-xl border border-slate-200 px-3 py-2 text-sm md:col-span-2" />
+              <input value={newTags} onChange={(e) => setNewTags(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="comma, separated, tags" />
+              <button onClick={addMemory} className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">Add memory row</button>
+            </div>
+            <div className="overflow-hidden rounded-2xl border border-slate-200">
+              <div className="grid grid-cols-[120px_1fr_110px_130px] bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <div>Table</div><div>Title</div><div>Importance</div><div>Updated</div>
+              </div>
+              {workspace.notes.map((note) => (
+                <button key={note.id} onClick={() => setSelectedId(note.id)} className={`grid w-full grid-cols-[120px_1fr_110px_130px] px-3 py-3 text-left text-sm hover:bg-slate-50 ${note.id === selected.id ? "bg-cyan-50" : "bg-white"}`}>
+                  <div className="font-medium text-slate-600">{tableLabels[note.table]}</div>
+                  <div><div className="font-medium text-slate-900">{note.title}</div><div className="text-xs text-slate-500">{note.id}</div></div>
+                  <div>{note.importance}</div>
+                  <div className="text-slate-500">{note.updatedAt}</div>
+                </button>
+              ))}
+            </div>
+            {selected && (
+              <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className={sectionTitle}>Edit selected memory</div>
+                <input value={selected.title} onChange={(e) => updateSelected("title", e.target.value)} className="mb-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" />
+                <textarea value={selected.body} onChange={(e) => updateSelected("body", e.target.value)} className="mb-2 min-h-[110px] w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" />
+                <div className="grid gap-2 md:grid-cols-2">
+                  <select value={selected.importance} onChange={(e) => updateSelected("importance", e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm">
+                    {(["Core", "Useful", "Archive"] as MemoryImportance[]).map((level) => <option key={level}>{level}</option>)}
+                  </select>
+                  <input value={selected.tags.join(", ")} onChange={(e) => updateSelected("tags", parseTags(e.target.value))} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {subTab === "markdown" && (
+        <div className="grid gap-5 lg:grid-cols-[300px_1fr]">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <div className={sectionTitle}>Markdown files</div>
+            <div className="space-y-2">
+              {workspace.notes.map((note) => (
+                <button key={note.id} onClick={() => setSelectedId(note.id)} className={`w-full rounded-xl border px-3 py-2 text-left text-sm ${note.id === selected.id ? "border-cyan-300 bg-cyan-50" : "border-slate-200 bg-white hover:bg-slate-50"}`}>
+                  <div className="font-medium">{note.title}</div>
+                  <div className="text-xs text-slate-500">{memoryPath(note)}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-950 p-4 text-slate-100">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="text-sm font-semibold">{selected ? memoryPath(selected) : "Export"}</div>
+              <span className="rounded-full bg-white/10 px-3 py-1 text-xs">Copy-ready markdown</span>
+            </div>
+            <pre className="max-h-[620px] overflow-auto whitespace-pre-wrap rounded-xl bg-black/30 p-4 text-xs leading-5">{selected ? noteToMarkdown(selected) : markdownExport}</pre>
+            <details className="mt-4">
+              <summary className="cursor-pointer text-sm font-semibold">Full portable export bundle</summary>
+              <pre className="mt-3 max-h-[360px] overflow-auto whitespace-pre-wrap rounded-xl bg-black/30 p-4 text-xs leading-5">{markdownExport}</pre>
+            </details>
+          </div>
+        </div>
+      )}
+
+      {subTab === "settings" && (
+        <div className="grid gap-5 md:grid-cols-3">
+          {[
+            ["1. Capture", "Write memories as small markdown cards. One fact, preference, project, or rule per card."],
+            ["2. Structure", "Each card gets a table, stable ID, tags, importance level, and updated date. That is the simulated relational database."],
+            ["3. Retrieve", "Before each chat turn, load only the useful cards. Core memories come first. Archived memories stay out of the way."],
+            ["4. Export", "Because everything is markdown, you can copy it to a folder, Git repo, notes app, or future real database."],
+            ["5. Safety", "Private or outdated facts can be edited, downgraded to Archive, or removed before they affect future chats."],
+            ["6. Upgrade path", "Later, an API-backed chatbot can replace the simulator while keeping the same memory files and tables."],
+          ].map(([title, body]) => (
+            <div key={title} className="rounded-2xl border border-slate-200 bg-white p-5">
+              <div className="mb-2 font-semibold">{title}</div>
+              <p className="text-sm leading-6 text-slate-600">{body}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function WagesTab() {
   const [projection, setProjection] = useState<WagesProjection>(fakeWagesBlob.projection);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
@@ -627,13 +970,16 @@ function WagesTab() {
   );
 }
 
-function tabClass(tab: string) {
-  return tab === "wages" ? "border-slate-900 text-slate-950" : "border-transparent text-slate-400 cursor-not-allowed";
+function tabClass(tab: string, activeTab: string) {
+  const enabled = tab === "wages" || tab === "memory";
+  if (!enabled) return "border-transparent text-slate-400 cursor-not-allowed";
+  return activeTab === tab ? "border-slate-900 text-slate-950" : "border-transparent text-slate-500 hover:text-slate-800";
 }
 
 export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showSource, setShowSource] = useState(false);
+  const [activeTab, setActiveTab] = useState("memory");
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -653,6 +999,7 @@ export default function App() {
     ["loans", "Loans"],
     ["contributions", "Contributions"],
     ["wages", "Wages"],
+    ["memory", "Memory Management"],
     ["tax", "Tax"],
     ["files", "Files"],
     ["import", "Import"],
@@ -660,15 +1007,16 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-white p-6 text-slate-950">
-      <main className="mx-auto max-w-3xl">
+      <main className="mx-auto max-w-6xl">
         <header className="mb-6 border-b border-slate-200 pb-4">
           <div className="mb-5 flex items-center gap-6 border-b border-slate-200 text-sm font-medium">
             {tabs.map(([key, label]) => (
               <button
                 key={key}
-                disabled={key !== "wages"}
-                className={`border-b-2 pb-3 ${tabClass(key)}`}
-                title={key === "wages" ? "Current tab" : "Visible shell only"}
+                disabled={key !== "wages" && key !== "memory"}
+                onClick={() => (key === "wages" || key === "memory") && setActiveTab(key)}
+                className={`border-b-2 pb-3 ${tabClass(key, activeTab)}`}
+                title={key === "wages" || key === "memory" ? "Open tab" : "Visible shell only"}
               >
                 {label}
               </button>
@@ -694,7 +1042,7 @@ export default function App() {
           </div>
         </header>
 
-        <WagesTab />
+        {activeTab === "memory" ? <MemoryManagementTab /> : <WagesTab />}
 
         {showSource && (
           <div className="mt-8 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500">

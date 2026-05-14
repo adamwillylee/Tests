@@ -1,6 +1,9 @@
-# Wages Prototype
+# Wages + Memory Prototype
 
-This repo now contains a tiny React + Vite wages prototype using fake, hardcoded data.
+This repo contains a tiny React + Vite prototype with two working tabs:
+
+- **Memory Management**: a portable AI memory cockpit with a simulated chatbot, database-style memory rows, markdown cards, and a system-design guide.
+- **Wages**: the original wages planning prototype using fake, hardcoded data.
 
 ## Run it locally
 
